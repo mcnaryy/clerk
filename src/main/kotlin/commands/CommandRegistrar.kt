@@ -1,9 +1,7 @@
-package net.hellz.commands
-
 import revxrsal.commands.minestom.MinestomLamp
 import java.io.File
-import kotlin.reflect.full.createInstance
-import kotlin.reflect.full.primaryConstructor
+import java.lang.reflect.Constructor
+import java.lang.reflect.Method
 
 class CommandRegistrar {
 
@@ -30,9 +28,12 @@ class CommandRegistrar {
         // Registers the commands
         classes.filter { it != CommandRegistrar::class.java }.forEach { commandClass ->
             try {
-                val instance = createCommandInstance(commandClass)
-                lamp.register(instance)
-                println("Registered command: ${commandClass.simpleName}")
+                // Ensure we're registering the actual command class, not synthetic ones
+                if (!commandClass.name.contains("$")) {
+                    val instance = createCommandInstance(commandClass)
+                    lamp.register(instance)
+                    println("Registered command: ${commandClass.simpleName}")
+                }
             } catch (e: Exception) {
                 println("Failed to register command: ${commandClass.simpleName}")
                 e.printStackTrace()
@@ -40,18 +41,19 @@ class CommandRegistrar {
         }
     }
 
-    // Creates the instance for the commands
+    // Creates the instance for the commands using Java Reflection
     private fun createCommandInstance(commandClass: Class<*>): Any {
-        val kClass = commandClass.kotlin
-        val constructor = kClass.primaryConstructor
-        return if (constructor != null && constructor.parameters.isNotEmpty()) {
-            constructor.call()
-        } else {
-            kClass.createInstance()
+        return try {
+            // Ensure we're not calling a synthetic class or lambda
+            val constructor: Constructor<*> = commandClass.getConstructor()
+            constructor.newInstance()
+        } catch (e: NoSuchMethodException) {
+            // If no default constructor exists, try calling the default constructor without parameters
+            commandClass.getDeclaredConstructor().newInstance()
         }
     }
 
-    // Looks for the classes
+    // Looks for the classes in the package
     private fun findClasses(directory: File, packageName: String): List<Class<*>> {
         val classes = mutableListOf<Class<*>>()
         if (!directory.exists()) {

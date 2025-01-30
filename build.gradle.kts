@@ -27,6 +27,16 @@ dependencies {
     // Kotlin Reflections
     implementation("org.jetbrains.kotlin:kotlin-reflect:1.8.10")
 
+    // MCCoroutine
+    implementation("com.github.shynixn.mccoroutine:mccoroutine-minestom-api:2.20.0")
+    implementation("com.github.shynixn.mccoroutine:mccoroutine-minestom-core:2.20.0")
+
+    // Kotlin Coroutines
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactive:1.6.4")
+
+
+
 }
 
 tasks.test {

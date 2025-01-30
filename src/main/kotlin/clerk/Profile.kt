@@ -1,105 +1,80 @@
 package net.hellz.clerk
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import net.hellz.util.StreamConnection
 import net.minestom.server.entity.Player
 import org.bson.Document
 import java.util.UUID
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
-import java.util.stream.Stream
+import java.util.concurrent.ConcurrentHashMap
 
-// Creates a profile for every player using their uuid
-class Profile private constructor(val player: Player, val username: String){
+class Profile private constructor(val player: Player, val username: String) {
     val uuid: UUID = player.uuid
     private val permissions: MutableSet<String> = mutableSetOf()
 
-    // Functions for the Profile class (What to do with a profile)
     companion object {
-        private val profiles = mutableMapOf<UUID, Profile>()
+        private val profiles = ConcurrentHashMap<UUID, Profile>()
 
-        // Check to see if a player even has a profile
-        fun retrieve(player: Player){
+        suspend fun retrieve(player: Player) {
             val uuid = player.uuid
-            val filter = Document("_id", uuid.toString()) // Filter is what documents we are looking for
-            val latch = CountDownLatch(1) // Timer to stop searching through the collection
-            var found = false // Determine if a profile was found or not
+            val filter = Document("_id", uuid.toString())
 
-            // Search for the players uuid in the profiles collection
-            StreamConnection().read("profiles", filter) { doc ->
-                found = doc != null
-                latch.countDown()
+            val doc = withContext(Dispatchers.IO) {
+                StreamConnection.readAsync("profiles", filter)
             }
 
-            // If there is no profile belonging the player, we will create one for them
-            if (!latch.await(1, TimeUnit.SECONDS)) {
-                println("[clerk] The player ${player.username} does not have a profile in the database.")
+            if (doc == null) {
                 create(player)
-                return
+            } else {
+                profiles[uuid] = Profile(player, doc.getString("username")).apply {
+                    permissions.addAll(doc.getList("permissions", String::class.java))
+                }
             }
-            if (!found){
-                create(player)
-            }
-
         }
 
-        // Creating an empty profile for the player
-        private fun create(player: Player){
+        private suspend fun create(player: Player) {
             val uuid = player.uuid
             val username = player.username
             val doc = Document("_id", uuid.toString())
                 .append("username", username)
                 .append("permissions", emptyList<String>())
 
-            StreamConnection().write("profiles", doc)
+            withContext(Dispatchers.IO) {
+                StreamConnection.writeAsync("profiles", doc)
+            }
             profiles[uuid] = Profile(player, username)
             println("[clerk] Successfully created a new profile for ${player.username}.")
         }
 
-        fun addPermission(player: Player, permission: String){
-            val uuid = player.uuid
-            val filter = Document("_id", uuid.toString())
-            StreamConnection().read("profiles", filter) { doc ->
-                if (doc != null){
-                    val permissions = doc.getList("permissions", String::class.java).toMutableSet()
-                    permissions.add(permission)
-
-                    val updatedDoc = Document(doc).append("permissions", permissions.toList())
-                    StreamConnection().update("profiles", filter, updatedDoc)
-                    println("[clerk] Successfully granted (${permission}) permission to ${player.username}")
-                }
+        suspend fun addPermission(player: Player, permission: String) {
+            val profile = profiles[player.uuid] ?: return
+            if (profile.permissions.add(permission)) {
+                updateProfile(profile)
+                println("[clerk] Successfully granted ($permission) permission to ${player.username}")
             }
         }
 
-        fun removePermission(player: Player, permission: String){
-            val uuid = player.uuid
-            val filter = Document("_id", uuid.toString())
-            StreamConnection().read("profiles", filter) { doc ->
-                if (doc != null) {
-                    val permissions = doc.getList("permissions", String::class.java).toMutableSet()
-                    permissions.remove(permission)
-                    val updatedDoc = Document(doc).append("permissions", permissions.toList())
-                    StreamConnection().update("profiles", filter, updatedDoc)
-                    println("[clerk] Successfully removed (${permission}) permission from ${player.username}")
-                }
+        suspend fun removePermission(player: Player, permission: String) {
+            val profile = profiles[player.uuid] ?: return
+            if (profile.permissions.remove(permission)) {
+                updateProfile(profile)
+                println("[clerk] Successfully removed ($permission) permission from ${player.username}")
             }
         }
 
-        fun hasPermission(player: Player, permission: String): Boolean {
-            val uuid = player.uuid
-            val filter = Document("_id", uuid.toString())
-            var hasPermission = false
-            val latch = CountDownLatch(1)
+        suspend fun hasPermission(player: Player, permission: String): Boolean {
+            return profiles[player.uuid]?.permissions?.contains(permission) ?: false
+        }
 
-            StreamConnection().read("profiles", filter) { doc ->
-                if (doc != null){
-                    val permissions = doc.getList("permissions", String::class.java)
-                    hasPermission = permissions.contains(permission)
-                }
-                latch.countDown()
+        private suspend fun updateProfile(profile: Profile) {
+            val filter = Document("_id", profile.uuid.toString())
+            val updatedDoc = Document()
+                .append("username", profile.username)
+                .append("permissions", profile.permissions.toList())
+
+            withContext(Dispatchers.IO) {
+                StreamConnection.updateAsync("profiles", filter, updatedDoc)
             }
-
-            latch.await(1, TimeUnit.SECONDS)
-            return hasPermission
         }
     }
 }

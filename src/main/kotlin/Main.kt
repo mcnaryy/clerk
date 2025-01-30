@@ -1,7 +1,7 @@
 package net.hellz
 
+import CommandRegistrar
 import net.hellz.clerk.Profile
-import net.hellz.commands.CommandRegistrar
 import net.hellz.util.StreamConnection
 import net.minestom.server.MinecraftServer
 import net.minestom.server.coordinate.Pos
@@ -11,10 +11,15 @@ import net.minestom.server.event.player.PlayerChatEvent
 import net.minestom.server.extras.MojangAuth
 import net.minestom.server.extras.velocity.VelocityProxy
 import net.minestom.server.instance.block.Block
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 fun main() {
     // Connect to the Mongo Database
-    StreamConnection()
+    StreamConnection
+
+    val coroutineScope = CoroutineScope(Dispatchers.IO)
 
     // Init the server
     val server = MinecraftServer.init()
@@ -30,16 +35,21 @@ fun main() {
 
     // Create the player spawning configuration (Call the spawning instance)
     val globalEventHandler = MinecraftServer.getGlobalEventHandler()
-    globalEventHandler.addListener(AsyncPlayerConfigurationEvent::class.java){ event ->
+    globalEventHandler.addListener(AsyncPlayerConfigurationEvent::class.java) { event ->
         val player = event.player
         event.spawningInstance = instanceContainer
         player.respawnPoint = Pos(0.0, 42.0, 0.0)
-        Profile.retrieve(player)
+
+        coroutineScope.launch {
+            Profile.retrieve(player)
+        }
     }
 
-    globalEventHandler.addListener(PlayerChatEvent::class.java){ event ->
+    globalEventHandler.addListener(PlayerChatEvent::class.java) { event ->
         val player = event.player
-        Profile.removePermission(player, "commands.version")
+        coroutineScope.launch {
+            Profile.addPermission(player, event.rawMessage)
+        }
     }
 
     // Mojang Authentication
