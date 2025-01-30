@@ -20,6 +20,9 @@ dependencies {
     // MongoDB Driver (Reactive Streams + Multithreading)
     implementation("org.mongodb:mongodb-driver-reactivestreams:4.10.2")
 
+    // Redis Driver (Lettuce)
+    implementation("io.lettuce:lettuce-core:6.3.2.RELEASE")
+
     // Lamp Command Framework
     implementation("io.github.revxrsal:lamp.common:4.0.0-rc.4")
     implementation("io.github.revxrsal:lamp.minestom:4.0.0-rc.4")
@@ -34,6 +37,8 @@ dependencies {
     // Kotlin Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactive:1.6.4")
+
+    implementation("org.yaml:snakeyaml:2.0")
 
 
 

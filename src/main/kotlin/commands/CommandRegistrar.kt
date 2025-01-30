@@ -1,3 +1,4 @@
+import revxrsal.commands.autocomplete.AutoCompleter
 import revxrsal.commands.minestom.MinestomLamp
 import java.io.File
 import java.lang.reflect.Constructor

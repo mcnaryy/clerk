@@ -6,18 +6,20 @@ import net.hellz.util.StreamConnection
 import net.minestom.server.MinecraftServer
 import net.minestom.server.coordinate.Pos
 import net.minestom.server.event.player.AsyncPlayerConfigurationEvent
-import net.minestom.server.event.player.AsyncPlayerPreLoginEvent
 import net.minestom.server.event.player.PlayerChatEvent
-import net.minestom.server.extras.MojangAuth
 import net.minestom.server.extras.velocity.VelocityProxy
 import net.minestom.server.instance.block.Block
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import net.hellz.clerk.Rank
+import net.hellz.utils.LettuceConnection
+import net.kyori.adventure.text.Component
 
-fun main() {
+suspend fun main() {
     // Connect to the Mongo Database
     StreamConnection
+    LettuceConnection
 
     val coroutineScope = CoroutineScope(Dispatchers.IO)
 
@@ -46,15 +48,18 @@ fun main() {
     }
 
     globalEventHandler.addListener(PlayerChatEvent::class.java) { event ->
-        val player = event.player
+        println(Rank.listRanks())
         coroutineScope.launch {
-            Profile.addPermission(player, event.rawMessage)
+            Profile.addPermission(event.player, "commands.clerk")
         }
+        val player = event.player
+        val profile = Profile.profiles[player.uuid]
+        val rankPrefix = profile?.rank?.prefix ?: ""
+        event.formattedMessage = Component.text("$rankPrefix ${player.username}: ${event.rawMessage}")
     }
 
     // Mojang Authentication
     //MojangAuth.init()
-
 
     // Connects to the Velocity Proxy (Disabled MojangAuth)
     VelocityProxy.enable("gHi7VvKJ3oXv")
@@ -62,7 +67,8 @@ fun main() {
     // Start the server
     server.start("0.0.0.0", 25566)
 
-
     // Registers all the commands
     CommandRegistrar().reflect()
+
+    Rank.loadRanksFromYaml()
 }
