@@ -5,9 +5,6 @@ import net.minestom.server.entity.Player
 import net.hellz.clerk.Profile
 import net.hellz.clerk.staff.StaffManager
 import revxrsal.commands.annotation.Command
-import revxrsal.commands.annotation.Optional
-import revxrsal.commands.annotation.Subcommand
-import revxrsal.commands.annotation.Suggest
 
 class StaffModeCommand {
 
@@ -16,7 +13,7 @@ class StaffModeCommand {
         sender: Player,
     ) {
         runBlocking {
-            if (!Profile.hasPermission("${sender.uuid}", "commands.staffchat")) {
+            if (!Profile.hasPermission("${sender.uuid}", "commands.staffmode")) {
                 sender.sendMessage("You do not have access to this command.")
             } else {
                 StaffManager.toggleStaffMode(sender)

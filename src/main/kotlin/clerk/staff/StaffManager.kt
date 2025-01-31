@@ -2,11 +2,15 @@ package net.hellz.clerk.staff
 
 import kotlinx.coroutines.runBlocking
 import net.hellz.clerk.Profile
+import net.hellz.clerk.staff.VanishManager.vanishedPlayers
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.minestom.server.entity.Player
 import net.minestom.server.MinecraftServer
 import net.minestom.server.adventure.audience.PacketGroupingAudience
+import net.minestom.server.entity.GameMode
+import net.minestom.server.item.ItemStack
+import net.minestom.server.item.Material
 import java.util.UUID
 
 object StaffManager {
@@ -89,6 +93,9 @@ object StaffManager {
     fun toggleStaffMode(player: Player) {
         if (!staffModePlayers.contains(player.uuid)) {
             staffModePlayers.add(player.uuid)
+            VanishManager.vanishedPlayers.add(player.uuid)
+            player.isInvisible = true
+            player.setGameMode(GameMode.CREATIVE)
             player.sendMessage(
                 Component.text()
                     .append(Component.text("[clerk] ").color(NamedTextColor.AQUA))
@@ -96,6 +103,8 @@ object StaffManager {
             )
         } else {
             staffModePlayers.remove(player.uuid)
+            VanishManager.vanishedPlayers.remove(player.uuid)
+            player.isInvisible = false
             player.sendMessage(
                 Component.text()
                     .append(Component.text("[clerk] ").color(NamedTextColor.AQUA))
@@ -103,5 +112,4 @@ object StaffManager {
             )
         }
     }
-
 }

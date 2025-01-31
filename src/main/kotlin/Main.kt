@@ -16,6 +16,8 @@ import kotlinx.coroutines.launch
 import net.hellz.clerk.Rank
 import net.hellz.clerk.staff.StaffManager
 import net.hellz.util.ConfigurationYAML
+import net.hellz.util.LocationYAML
+import net.hellz.util.PlayerLocation
 import net.hellz.utils.LettuceConnection
 import net.kyori.adventure.text.Component
 import net.minestom.server.extras.MojangAuth
@@ -23,12 +25,14 @@ import net.minestom.server.extras.MojangAuth
 import net.kyori.adventure.audience.Audience
 import net.kyori.adventure.text.format.NamedTextColor
 import net.minestom.server.event.player.AsyncPlayerPreLoginEvent
+import net.minestom.server.event.player.PlayerDisconnectEvent
 import net.minestom.server.network.packet.server.ServerPacket.Play
 
 suspend fun main() {
     // Load the server configuration
     val configYAML = ConfigurationYAML()
     val serverConfig = configYAML.loadConfig()
+    LocationYAML()
 
     // Connect to the Mongo Database
     StreamConnection
@@ -53,22 +57,25 @@ suspend fun main() {
     globalEventHandler.addListener(AsyncPlayerConfigurationEvent::class.java) { event ->
         val player = event.player
         event.spawningInstance = instanceContainer
-        player.respawnPoint = Pos(0.0, 42.0, 0.0)
 
-        coroutineScope.launch {
-            val profile = async { Profile.retrieve(player) }
-            profile.await()
 
-            if (serverConfig.whitelist == true){
-                if (!Profile.hasPermission("${player.uuid}", "whitelist.access.${serverConfig.name}") && !Profile.hasPermission("${player.uuid}", "whitelist.bypass")) {
-                    player.kick(Component.text("You are not whitelisted on this server."))
-                }
-            }
+        val locations = LocationYAML().loadLocations()
+        val lastLocation = locations.find { it.uuid == player.uuid.toString() }
+        if (lastLocation != null) {
+            player.respawnPoint = Pos(lastLocation.x, lastLocation.y, lastLocation.z)
+        } else {
+            player.respawnPoint = Pos(0.0, 42.0, 0.0)
         }
     }
 
     globalEventHandler.addListener(AsyncPlayerPreLoginEvent::class.java) { event ->
-        val player = event.gameProfile.name
+        val player = event.gameProfile.uuid.toString()
+
+        coroutineScope.launch {
+            val profile = async { Profile.retrieve(player) }
+            profile.await()
+        }
+
     }
 
 
@@ -84,6 +91,18 @@ suspend fun main() {
             }
         }
         event.formattedMessage = Component.text("$rankPrefix ${player.username}§7: §f${event.rawMessage}")
+    }
+
+    globalEventHandler.addListener(PlayerDisconnectEvent::class.java) { event ->
+        val player = event.player
+        val playerLocation = PlayerLocation(
+            uuid = player.uuid.toString(),
+            x = player.position.x,
+            y = player.position.y,
+            z = player.position.z,
+            world = player.instance!!.uniqueId.toString()
+        )
+        LocationYAML().updatePlayerLocation(playerLocation)
     }
 
     // Authentication
