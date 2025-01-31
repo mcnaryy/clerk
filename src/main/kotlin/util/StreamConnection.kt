@@ -1,6 +1,5 @@
 package net.hellz.util
 
-import com.mongodb.client.model.ReplaceOptions
 import com.mongodb.reactivestreams.client.MongoClient
 import com.mongodb.reactivestreams.client.MongoClients
 import com.mongodb.reactivestreams.client.MongoCollection
@@ -52,17 +51,6 @@ object StreamConnection {
                 println("[rStream] A document was successfully updated in the database!")
             } catch (e: Exception) {
                 println("[rStream] Error updating document: ${e.message}")
-            }
-        }
-    }
-
-    suspend fun replaceOneAsync(collectionName: String, filter: Document, newDocument: Document) {
-        withContext(Dispatchers.IO) {
-            try {
-                getCollection(collectionName).replaceOne(filter, newDocument, ReplaceOptions().upsert(true)).awaitSingle()
-                println("[rStream] A document was successfully replaced in the database!")
-            } catch (e: Exception) {
-                println("[rStream] Error replacing document: ${e.message}")
             }
         }
     }

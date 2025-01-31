@@ -10,7 +10,7 @@ class VersionCommand {
     @Command("version", "ver")
     fun version(sender: Player) {
         runBlocking {
-            if (!Profile.hasPermission(sender, "commands.version")) {
+            if (!Profile.hasPermission("${sender.uuid}", "commands.version")) {
                 sender.sendMessage("You do not have access to this command.")
             } else {
                 sender.sendMessage("You are currently running clerk.02")

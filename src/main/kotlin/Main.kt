@@ -11,12 +11,25 @@ import net.minestom.server.extras.velocity.VelocityProxy
 import net.minestom.server.instance.block.Block
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import net.hellz.clerk.Rank
+import net.hellz.clerk.staff.StaffManager
+import net.hellz.util.ConfigurationYAML
 import net.hellz.utils.LettuceConnection
 import net.kyori.adventure.text.Component
+import net.minestom.server.extras.MojangAuth
+
+import net.kyori.adventure.audience.Audience
+import net.kyori.adventure.text.format.NamedTextColor
+import net.minestom.server.event.player.AsyncPlayerPreLoginEvent
+import net.minestom.server.network.packet.server.ServerPacket.Play
 
 suspend fun main() {
+    // Load the server configuration
+    val configYAML = ConfigurationYAML()
+    val serverConfig = configYAML.loadConfig()
+
     // Connect to the Mongo Database
     StreamConnection
     LettuceConnection
@@ -43,32 +56,49 @@ suspend fun main() {
         player.respawnPoint = Pos(0.0, 42.0, 0.0)
 
         coroutineScope.launch {
-            Profile.retrieve(player)
+            val profile = async { Profile.retrieve(player) }
+            profile.await()
+
+            if (serverConfig.whitelist == true){
+                if (!Profile.hasPermission("${player.uuid}", "whitelist.access.${serverConfig.name}") && !Profile.hasPermission("${player.uuid}", "whitelist.bypass")) {
+                    player.kick(Component.text("You are not whitelisted on this server."))
+                }
+            }
         }
     }
+
+    globalEventHandler.addListener(AsyncPlayerPreLoginEvent::class.java) { event ->
+        val player = event.gameProfile.name
+    }
+
 
     globalEventHandler.addListener(PlayerChatEvent::class.java) { event ->
-        println(Rank.listRanks())
-        coroutineScope.launch {
-            Profile.addPermission(event.player, "commands.clerk")
-        }
         val player = event.player
         val profile = Profile.profiles[player.uuid]
-        val rankPrefix = profile?.rank?.prefix ?: ""
-        event.formattedMessage = Component.text("$rankPrefix ${player.username}: ${event.rawMessage}")
+        val rankPrefix = profile?.rank?.prefix?.replace('&', '§') ?: ""
+        if (StaffManager.isStaffMember(player)) {
+            if (StaffManager.isStaffChatEnabled(player)) {
+                StaffManager.sendStaffMessage(player, event.rawMessage)
+                event.isCancelled = true
+                return@addListener
+            }
+        }
+        event.formattedMessage = Component.text("$rankPrefix ${player.username}§7: §f${event.rawMessage}")
     }
 
-    // Mojang Authentication
-    //MojangAuth.init()
-
-    // Connects to the Velocity Proxy (Disabled MojangAuth)
-    VelocityProxy.enable("gHi7VvKJ3oXv")
+    // Authentication
+    if (serverConfig.useVelocityProxy) {
+        VelocityProxy.enable(serverConfig.velocitySecretKey)
+    } else if (serverConfig.useMojangAuth) {
+         MojangAuth.init()
+    }
 
     // Start the server
-    server.start("0.0.0.0", 25566)
+    server.start("0.0.0.0", serverConfig.port)
 
     // Registers all the commands
     CommandRegistrar().reflect()
 
     Rank.loadRanksFromYaml()
+
 }

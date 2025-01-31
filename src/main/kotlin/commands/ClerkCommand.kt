@@ -21,7 +21,7 @@ class ClerkCommand {
         sender: Player,
         arg1: Player
     ) {
-        if (!Profile.hasPermission(sender, "commands.clerk")) {
+        if (!Profile.hasPermission("${sender.uuid}", "commands.clerk")) {
             sender.sendMessage("You do not have access to this command.")
             return
         }
@@ -43,7 +43,7 @@ class ClerkCommand {
         arg1: Player,
         @Suggest("(name)") arg2: String,
     ) {
-        if (!Profile.hasPermission(sender, "commands.clerk")) {
+        if (!Profile.hasPermission("${sender.uuid}", "commands.clerk")) {
             sender.sendMessage("You do not have access to this command.")
             return
         }
@@ -53,7 +53,7 @@ class ClerkCommand {
             return
         }
         scope.launch {
-            Profile.setRank(arg1, rank)
+            Profile.setRank("${arg1.uuid}", rank)
         }
         sender.sendMessage("[clerk] Successfully set rank '$arg2' for player '${arg1.username}'.")
     }
@@ -62,16 +62,16 @@ class ClerkCommand {
     suspend fun addPermission(
         sender: Player,
         arg1: Player,
-        @Suggest("commands.example") arg2: String,
+        @Suggest("commands.") arg2: String,
     ) {
-        if (!Profile.hasPermission(sender, "commands.clerk")) {
+        if (!Profile.hasPermission("${sender.uuid}", "commands.clerk")) {
             sender.sendMessage("You do not have access to this command.")
             return
         }
         sender.sendMessage("[clerk] You have granted ${arg1.username} the permission: ${arg2}")
         arg1.sendMessage("[clerk] You have been granted the permission: ${arg2}")
         scope.launch {
-            Profile.addPermission(arg1, arg2)
+            Profile.addPermission("${arg1}", arg2)
         }
     }
 
@@ -79,16 +79,16 @@ class ClerkCommand {
     suspend fun removePermission(
         sender: Player,
         arg1: Player,
-        @Suggest("commands.example") arg2: String,
+        @Suggest("commands.") arg2: String,
     ) {
-        if (!Profile.hasPermission(sender, "commands.clerk")) {
+        if (!Profile.hasPermission("${sender.uuid}", "commands.clerk")) {
             sender.sendMessage("You do not have access to this command.")
             return
         }
         sender.sendMessage("[clerk] You have revoked ${arg1.username} the permission: ${arg2}")
         arg1.sendMessage("[clerk] You have been revoked the permission: ${arg2}")
         scope.launch {
-            Profile.removePermission(arg1, arg2)
+            Profile.removePermission("${arg1}", arg2)
         }
     }
 
@@ -97,7 +97,7 @@ class ClerkCommand {
         sender: Player,
         @Suggest("(name)") arg1: String,
     ) {
-        if (!Profile.hasPermission(sender, "commands.clerk")) {
+        if (!Profile.hasPermission("${sender.uuid}", "commands.clerk")) {
             sender.sendMessage("You do not have access to this command.")
             return
         }
@@ -115,7 +115,7 @@ class ClerkCommand {
         sender: Player,
         @Suggest("(name)") arg1: String,
     ) {
-        if (!Profile.hasPermission(sender, "commands.clerk")) {
+        if (!Profile.hasPermission("${sender.uuid}", "commands.clerk")) {
             sender.sendMessage("You do not have access to this command.")
             return
         }
@@ -129,7 +129,7 @@ class ClerkCommand {
         @Suggest("(name)") arg1: String,
         arg2: Int
     ) {
-        if (!Profile.hasPermission(sender, "commands.clerk")) {
+        if (!Profile.hasPermission("${sender.uuid}", "commands.clerk")) {
             sender.sendMessage("You do not have access to this command.")
             return
         }
@@ -145,7 +145,7 @@ class ClerkCommand {
         @Suggest("(name)") arg1: String,
         arg2: String
     ) {
-        if (!Profile.hasPermission(sender, "commands.clerk")) {
+        if (!Profile.hasPermission("${sender.uuid}", "commands.clerk")) {
             sender.sendMessage("You do not have access to this command.")
             return
         }
@@ -159,9 +159,9 @@ class ClerkCommand {
     suspend fun addRankPermission(
         sender: Player,
         @Suggest("(name)") arg1: String,
-        @Suggest("commands.example") arg2: String,
+        @Suggest("commands.") arg2: String,
     ) {
-        if (!Profile.hasPermission(sender, "commands.clerk")) {
+        if (!Profile.hasPermission("${sender.uuid}", "commands.clerk")) {
             sender.sendMessage("You do not have access to this command.")
             return
         }
@@ -175,9 +175,9 @@ class ClerkCommand {
     suspend fun removeRankPermission(
         sender: Player,
         @Suggest("(name)") arg1: String,
-        @Suggest("commands.example") arg2: String,
+        @Suggest("commands.") arg2: String,
     ) {
-        if (!Profile.hasPermission(sender, "commands.clerk")) {
+        if (!Profile.hasPermission("${sender.uuid}", "commands.clerk")) {
             sender.sendMessage("You do not have access to this command.")
             return
         }
@@ -192,7 +192,7 @@ class ClerkCommand {
         sender: Player,
         @Suggest("(name)") arg1: String
     ) {
-        if (!Profile.hasPermission(sender, "commands.clerk")) {
+        if (!Profile.hasPermission("${sender.uuid}", "commands.clerk")) {
             sender.sendMessage("You do not have access to this command.")
             return
         }
@@ -211,7 +211,7 @@ class ClerkCommand {
 
     @Subcommand("ranks")
     suspend fun listRanks(sender: Player) {
-        if (!Profile.hasPermission(sender, "commands.clerk")) {
+        if (!Profile.hasPermission("${sender.uuid}", "commands.clerk")) {
             sender.sendMessage("You do not have access to this command.")
             return
         }
